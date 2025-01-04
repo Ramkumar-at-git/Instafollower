@@ -1,28 +1,59 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, render_template, jsonify
 import instaloader
+import time
+import logging
 
 app = Flask(__name__)
 
-def get_follower_count_instaloader(username):
-    try:
-        loader = instaloader.Instaloader()
-        profile = instaloader.Profile.from_username(loader.context, username)
-        return {"followers": profile.followers}
-    except Exception as e:
-        return {"error": str(e)}
+# Initialize Instaloader
+L = instaloader.Instaloader()
+
+# Configure logging to get more insights in case of errors
+logging.basicConfig(level=logging.INFO)
+
 
 @app.route('/')
 def index():
-    return render_template('index.html')  # Ensure index.html is in the templates/ folder
+    return render_template('index.html')
 
-@app.route('/followers', methods=['GET'])
-def get_followers():
-    username = request.args.get('username')
-    if not username:
-        return jsonify({"error": "Username is required"}), 400
 
-    result = get_follower_count_instaloader(username)
-    return jsonify(result)
+@app.route('/followers/<username>')
+def get_followers(username):
+    try:
+        # Load the profile
+        profile = instaloader.Profile.from_username(L.context, username)
 
-if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000, debug=True)
+        # Get the follower count
+        followers = profile.followers
+
+        return jsonify({'followers': followers})
+
+    except instaloader.exceptions.ProfileNotExistsException:
+        # If the profile doesn't exist
+        logging.error(f"Profile {username} does not exist.")
+        return jsonify({'error': 'Profile does not exist.'})
+
+    except instaloader.exceptions.PrivateProfileNotAccessibleException:
+        # If the profile is private and inaccessible
+        logging.error(f"Profile {username} is private or inaccessible.")
+        return jsonify({'error': 'Profile is private or inaccessible.'})
+
+    except instaloader.exceptions.InstaloaderException as e:
+        # General Instaloader exceptions (e.g., network error)
+        logging.error(f"Instaloader exception: {str(e)}")
+        return jsonify({'error': f'Error fetching follower count: {str(e)}'})
+
+    except requests.exceptions.RequestException as e:
+        # Handle network errors with requests (e.g., network issues)
+        logging.error(f"Network error: {str(e)}")
+        return jsonify({'error': 'Network error. Please try again later.'})
+
+    except Exception as e:
+        # Catch any other exceptions
+        logging.error(f"Unexpected error: {str(e)}")
+        return jsonify({'error': 'An unexpected error occurred. Please try again later.'})
+
+
+# Main entry point for running the app
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=True)
