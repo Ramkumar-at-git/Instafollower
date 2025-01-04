@@ -1,8 +1,9 @@
-import os  # Add this import statement at the top of your file
-from flask import Flask, render_template, jsonify
+import os
+from flask import Flask, render_template, jsonify, request
 import instaloader
-import time
 import logging
+import requests
+import time
 
 app = Flask(__name__)
 
@@ -16,8 +17,15 @@ logging.basicConfig(level=logging.INFO)
 def index():
     return render_template('index.html')
 
-@app.route('/followers/<username>')
-def get_followers(username):
+@app.route('/followers')
+def get_followers():
+    # Get the username from query parameters
+    username = request.args.get('username')
+    
+    # If no username is provided, return an error
+    if not username:
+        return jsonify({'error': 'Username parameter is required.'})
+
     try:
         # Load the profile
         profile = instaloader.Profile.from_username(L.context, username)
