@@ -1,11 +1,15 @@
 import os
 from flask import Flask, render_template, jsonify, request
+from flask_cors import CORS  # Import CORS
 import instaloader
 import logging
 import requests
 import time
 
 app = Flask(__name__)
+
+# Enable CORS for all routes
+CORS(app)
 
 # Initialize Instaloader
 L = instaloader.Instaloader()
