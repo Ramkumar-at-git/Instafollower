@@ -17,6 +17,19 @@ L = instaloader.Instaloader()
 # Configure logging to get more insights in case of errors
 logging.basicConfig(level=logging.INFO)
 
+# Instagram login credentials (replace with your own credentials for private profiles)
+INSTAGRAM_USERNAME = "your_username"
+INSTAGRAM_PASSWORD = "your_password"
+
+# Try to log in automatically when the server starts (optional, but helps with accessing private profiles)
+try:
+    L.load_session_from_file(INSTAGRAM_USERNAME)  # Try loading session if previously saved
+except FileNotFoundError:
+    logging.info("No session found, logging in with username and password.")
+    L.context.log("Logging in as %s...", INSTAGRAM_USERNAME)
+    L.login(INSTAGRAM_USERNAME, INSTAGRAM_PASSWORD)  # Login using username and password
+    L.save_session_to_file()  # Save the session to avoid logging in every time
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -50,17 +63,17 @@ def get_followers():
         logging.error(f"Profile {username} does not exist.")
         return jsonify({'error': 'Profile does not exist.'})
     
-    except instaloader.exceptions.PrivateProfileNotAccessibleException:
-        logging.error(f"Profile {username} is private or inaccessible.")
-        return jsonify({'error': 'Profile is private or inaccessible.'})
-    
-    except instaloader.exceptions.InstaloaderException as e:
-        logging.error(f"Instaloader exception: {str(e)}")
-        return jsonify({'error': f'Error fetching follower count: {str(e)}'})
+    except instaloader.exceptions.LoginRequiredException:
+        logging.error(f"Login required for username: {username}.")
+        return jsonify({'error': 'Login required. Please log in to Instagram.'})
     
     except requests.exceptions.RequestException as e:
         logging.error(f"Network error: {str(e)}")
         return jsonify({'error': 'Network error. Please try again later.'})
+    
+    except instaloader.exceptions.InstaloaderException as e:
+        logging.error(f"Instaloader error: {str(e)}")
+        return jsonify({'error': f'Error with Instaloader: {str(e)}'})
     
     except Exception as e:
         logging.error(f"Unexpected error: {str(e)}")
