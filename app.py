@@ -1,6 +1,6 @@
 import os
 from flask import Flask, render_template, jsonify, request
-from flask_cors import CORS  # Import CORS
+from flask_cors import CORS
 import instaloader
 import logging
 import requests
@@ -16,36 +16,48 @@ L = instaloader.Instaloader()
 # Configure logging to get more insights in case of errors
 logging.basicConfig(level=logging.INFO)
 
-# Instagram login credentials (replace with your own credentials for private profiles)
-INSTAGRAM_USERNAME = "not12_334"
-INSTAGRAM_PASSWORD = "Ramkumar@41"
-
-# Define the session path
-SESSION_PATH = f'/tmp/.instaloader-render/session-{INSTAGRAM_USERNAME}'
-
-# Try to log in automatically when the server starts (optional, but helps with accessing private profiles)
-try:
-    logging.info("Attempting to load session.")
-    L.load_session_from_file(INSTAGRAM_USERNAME)  # Try loading session if previously saved
-except FileNotFoundError:
-    logging.info("No session found, logging in with username and password.")
-    try:
-        # Log in with username and password
-        logging.info(f"Logging in as {INSTAGRAM_USERNAME}...")
-        L.login(INSTAGRAM_USERNAME, INSTAGRAM_PASSWORD)  # Login using username and password
-        # Save the session to avoid logging in every time
-        L.save_session_to_file()  
-        logging.info("Session saved.")
-    except instaloader.exceptions.LoginException as e:
-        logging.error(f"Login failed: {str(e)}")
-        raise
-except Exception as e:
-    logging.error(f"Error during session loading: {str(e)}")
-    raise
+# Instagram login credentials (to be provided via form input)
+INSTAGRAM_USERNAME = None
+INSTAGRAM_PASSWORD = None
 
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    global INSTAGRAM_USERNAME, INSTAGRAM_PASSWORD
+
+    if request.method == 'POST':
+        # Get the username and password from the form
+        INSTAGRAM_USERNAME = request.form['username']
+        INSTAGRAM_PASSWORD = request.form['password']
+        
+        try:
+            logging.info(f"Attempting to log in as {INSTAGRAM_USERNAME}...")
+
+            # Try to load session
+            try:
+                L.load_session_from_file(INSTAGRAM_USERNAME)  # Try loading session if previously saved
+            except FileNotFoundError:
+                logging.info("No session found, logging in with username and password.")
+                L.context.log("Logging in as %s...", INSTAGRAM_USERNAME)
+                L.login(INSTAGRAM_USERNAME, INSTAGRAM_PASSWORD)  # Login using username and password
+                L.save_session_to_file()  # Save the session to avoid logging in every time
+
+            message = f"Successfully logged in as {INSTAGRAM_USERNAME}!"
+            return render_template('login.html', message=message)
+
+        except instaloader.exceptions.LoginException as e:
+            logging.error(f"Login failed: {str(e)}")
+            message = "Login failed. Please check your credentials."
+            return render_template('login.html', message=message)
+        except Exception as e:
+            logging.error(f"Unexpected error: {str(e)}")
+            message = "An unexpected error occurred. Please try again later."
+            return render_template('login.html', message=message)
+
+    return render_template('login.html')
 
 @app.route('/followers')
 def get_followers():
