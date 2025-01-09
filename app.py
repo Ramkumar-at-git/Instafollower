@@ -8,7 +8,7 @@ import time
 
 app = Flask(__name__)
 
-# Enable CORS for specific origins (replace with your actual front-end URL)
+# Enable CORS for all routes (adjust the origins if needed)
 CORS(app, resources={r"/*": {"origins": "https://instafollower-47tw.onrender.com"}})
 
 # Initialize Instaloader
@@ -28,42 +28,48 @@ def get_followers():
     
     # If no username is provided, return an error
     if not username:
+        logging.error("Username parameter is missing.")
         return jsonify({'error': 'Username parameter is required.'})
 
     try:
+        # Log the username to check if it is being passed correctly
+        logging.info(f"Fetching followers for username: {username}")
+
         # Load the profile
         profile = instaloader.Profile.from_username(L.context, username)
         
         # Get the follower count
         followers = profile.followers
+
+        # Log the follower count for debugging purposes
+        logging.info(f"Found {followers} followers for {username}")
         
         return jsonify({'followers': followers})
     
     except instaloader.exceptions.ProfileNotExistsException:
-        # If the profile doesn't exist
         logging.error(f"Profile {username} does not exist.")
         return jsonify({'error': 'Profile does not exist.'})
     
     except instaloader.exceptions.PrivateProfileNotAccessibleException:
-        # If the profile is private and inaccessible
         logging.error(f"Profile {username} is private or inaccessible.")
         return jsonify({'error': 'Profile is private or inaccessible.'})
     
     except instaloader.exceptions.InstaloaderException as e:
-        # General Instaloader exceptions (e.g., network error)
         logging.error(f"Instaloader exception: {str(e)}")
         return jsonify({'error': f'Error fetching follower count: {str(e)}'})
     
     except requests.exceptions.RequestException as e:
-        # Handle network errors with requests (e.g., network issues)
         logging.error(f"Network error: {str(e)}")
         return jsonify({'error': 'Network error. Please try again later.'})
     
     except Exception as e:
-        # Catch any other exceptions
         logging.error(f"Unexpected error: {str(e)}")
         return jsonify({'error': 'An unexpected error occurred. Please try again later.'})
 
 # Main entry point for running the app
 if __name__ == '__main__':
+    # Log the startup message
+    logging.info("Starting Flask app on port 5000.")
+    
+    # Running the Flask app
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=True)
