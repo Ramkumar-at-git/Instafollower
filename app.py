@@ -4,7 +4,6 @@ from flask_cors import CORS  # Import CORS
 import instaloader
 import logging
 import requests
-import time
 
 app = Flask(__name__)
 
@@ -21,14 +20,28 @@ logging.basicConfig(level=logging.INFO)
 INSTAGRAM_USERNAME = "not12_334"
 INSTAGRAM_PASSWORD = "Ramkumar@41"
 
+# Define the session path
+SESSION_PATH = f'/tmp/.instaloader-render/session-{INSTAGRAM_USERNAME}'
+
 # Try to log in automatically when the server starts (optional, but helps with accessing private profiles)
 try:
+    logging.info("Attempting to load session.")
     L.load_session_from_file(INSTAGRAM_USERNAME)  # Try loading session if previously saved
 except FileNotFoundError:
     logging.info("No session found, logging in with username and password.")
-    L.context.log("Logging in as %s...", INSTAGRAM_USERNAME)
-    L.login(INSTAGRAM_USERNAME, INSTAGRAM_PASSWORD)  # Login using username and password
-    L.save_session_to_file()  # Save the session to avoid logging in every time
+    try:
+        # Log in with username and password
+        logging.info(f"Logging in as {INSTAGRAM_USERNAME}...")
+        L.login(INSTAGRAM_USERNAME, INSTAGRAM_PASSWORD)  # Login using username and password
+        # Save the session to avoid logging in every time
+        L.save_session_to_file()  
+        logging.info("Session saved.")
+    except instaloader.exceptions.LoginException as e:
+        logging.error(f"Login failed: {str(e)}")
+        raise
+except Exception as e:
+    logging.error(f"Error during session loading: {str(e)}")
+    raise
 
 @app.route('/')
 def index():
