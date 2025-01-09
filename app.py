@@ -18,8 +18,8 @@ L = instaloader.Instaloader()
 logging.basicConfig(level=logging.INFO)
 
 # Instagram login credentials (replace with your own credentials for private profiles)
-INSTAGRAM_USERNAME = "your_username"
-INSTAGRAM_PASSWORD = "your_password"
+INSTAGRAM_USERNAME = "not12_334"
+INSTAGRAM_PASSWORD = "Ramkumar@41"
 
 # Try to log in automatically when the server starts (optional, but helps with accessing private profiles)
 try:
