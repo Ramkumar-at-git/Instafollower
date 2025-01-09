@@ -8,8 +8,8 @@ import time
 
 app = Flask(__name__)
 
-# Enable CORS for all routes
-CORS(app)
+# Enable CORS for specific origins (replace with your actual front-end URL)
+CORS(app, resources={r"/*": {"origins": "https://instafollower-47tw.onrender.com"}})
 
 # Initialize Instaloader
 L = instaloader.Instaloader()
